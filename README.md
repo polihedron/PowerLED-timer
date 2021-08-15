@@ -5,9 +5,11 @@ There are two options in code LowLED and HighLED, for 12x3W and 18x3W powerLEDs,
 
 3D print files:
 
-https://github.com/polihedron/PowerLED-timer/blob/main/img/1.jpg
+![Image1](https://github.com/polihedron/PowerLED-timer/blob/main/img/1.jpg)
 
-https://github.com/polihedron/PowerLED-timer/blob/main/img/2.jpg
+![Image2](https://github.com/polihedron/PowerLED-timer/blob/main/img/2.jpg)
+
+
 
 
 
