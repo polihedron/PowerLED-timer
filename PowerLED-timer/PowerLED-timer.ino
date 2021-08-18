@@ -10,8 +10,8 @@
 #define config_version "v1"
 #define config_start 16
 
-//#define LowLED
-#define HighLED
+#define LowLED
+//#define HighLED
 
 //#define DEBUG
 
@@ -42,7 +42,7 @@ bool colon = true;                                                    // timer c
 bool done = true;                                                     
 int PWR, lastPWR, timerMinutes, timerSeconds;
 int16_t value, lastValue;
-unsigned long colon_ms, timeLimit, timeRemaining, savemillis, himillis;
+unsigned long colon_ms, timeLimit, timeRemaining, lastPWRTime, savemillis, himillis;
 
 uint8_t save[] = {
   SEG_A|SEG_F|SEG_G|SEG_C|SEG_D,                                      // S
@@ -174,8 +174,10 @@ void menuTimer() {
             
     if ( millis() - himillis < 2000 )                                 // say HI at power on                          
       display.setSegments( hi, 4, 0 );  
+      
     else if ( millis() - savemillis < 2000 )                          // show SAVE if saving config to eeprom                          
       display.setSegments( save, 4, 0 );
+      
     else                                                              // display time to countdown, leading zeros active if no hours, colon active
       display.showNumberDecEx( timeToInteger( timerMinutes, timerSeconds ), 0x80 >> true , timerMinutes == 0 );
     
@@ -193,31 +195,30 @@ void menuTimer() {
 void menuPWR()  {
   
   value += encoder -> getValue();
-          if ( value > lastValue ) {                                   
-              PWR = 100;                                               // max LED power 100%
-                                                                     
-            } 
-          if ( value < lastValue )
-{
-              PWR = 50;                                                // min LED power 50%
-}
-            
-    if ( lastPWR != PWR ) {
-      DEBUG_PRINT( "PWR value: " );
-      DEBUG_PRINTLN( PWR );
-        if  (PWR == 50) {                                              // 50% is for 350mA current, 100% is for 700mA 
-          digitalWrite( pwr_pin, LOW );
-        }
-        else if  (PWR == 100)   {
-          digitalWrite( pwr_pin, HIGH );
-        }
-      }
-      
+    if ( value > lastValue )                                  
+        PWR = 100;                                                    // max LED power 100%                                                      
+    if ( value < lastValue )
+        PWR = 50;                                                     // min LED power 50%
      
-      lastPWR = PWR;                                                 
+    if ( lastPWR != PWR ) {
+        DEBUG_PRINT( "PWR value: " );
+        DEBUG_PRINTLN( PWR );
+          if  (PWR == 50)                                             // 50% is for 350mA current, 100% is for 700mA 
+          digitalWrite( pwr_pin, LOW );
+          else if  (PWR == 100)   
+          digitalWrite( pwr_pin, HIGH );
+     }
       
+     lastPWR = PWR;                                                 
   
-  if ( value != lastValue ) lastValue = value;
+     if ( value != lastValue ) lastValue = value;
+     
+     if ( millis() - lastPWRTime > 20000 )  {                         // after 20s inactivity in rmp set menu, comeback to countdown
+         pwrset = false;
+         done = false;
+         DEBUG_PRINTLN( "Back to countdown" );
+
+  }
   
   display.showNumberDecEx( PWR, 0x80 >> false , false );              // show power value, no colon, no leading zeros
   
@@ -239,29 +240,23 @@ void countdown() {
         colon_ms = millis();
         colon =! colon;
         if ( colon ) {                                                // print timer countdown with about 1s period
-
           if ( n_minutes )  {
-           DEBUG_PRINT( n_minutes );
+            DEBUG_PRINT( n_minutes );
             DEBUG_PRINT( " Minutes " );
           }  
           if ( n_seconds )  {
-          DEBUG_PRINT( n_seconds );
-          DEBUG_PRINTLN( " Seconds" );
+            DEBUG_PRINT( n_seconds );
+            DEBUG_PRINTLN( " Seconds" );
           }
-
-        }
-        
+        }   
    }
                                                 
-   if ( n_minutes <= 0 ) {                                                  
-                                                                      // show seconds and centiseconds if no minutes left
+   if ( n_minutes <= 0 ) {                                            // show seconds and centiseconds if no minutes left                                                                                     
        n_minutes = n_seconds;
-        n_seconds = n_centisec;
-
+       n_seconds = n_centisec;
    }
-   
                                                                       // show time, minutes in first two positions, with colon and leading zeros enabled 
-                                                                      
+                                                                    
    display.showNumberDecEx( timeToInteger( n_minutes, n_seconds ), 0x80 >> colon, n_minutes == 0 );
 
    buttonCheck();                                                     // check rotary encoder button
@@ -333,7 +328,6 @@ void buttonCheck() {
           }
        break;
 
-       
       } 
    }
 }
@@ -379,6 +373,7 @@ void loop() {
   if ( !pwrset ) {
     if ( done ) menuTimer();
     else countdown();
+	lastPWRTime = millis();
   }
   else
     menuPWR();
